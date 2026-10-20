@@ -55,6 +55,8 @@ print("Question 4")
 with open("./data/Produits-alimentaires-2024.csv", "r", encoding="utf-8") as fichier:
     contenu = pd.read_csv(fichier)
 
+print(contenu)
+
 # Question 5
 print("Question 5")
 
