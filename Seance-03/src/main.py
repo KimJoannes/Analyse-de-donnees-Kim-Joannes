@@ -1,147 +1,176 @@
 #coding:utf8
 
-import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-from scipy import stats
+import pandas as pd
+import scipy
+import scipy.stats as stats
+import matplotlib.pyplot as plt
 
-def listedesterritoires(territoiretest, exportationUSD, importationUSD):
-    listedesterritoires = [[territoiretest[0], 0]]
-    pos = 0
-    for element in range(0,len(territoiretest)):
-        if territoiretest[element] != listedesterritoires[pos][0]:
-            listedesterritoires.append([territoiretest[element], element])
-            pos += 1
-    lignes = []
-    for element in range(1,len(listedesterritoires)):
-        lignes.append(listedesterritoires[element][1] - 1)
-    lignes.append(len(territoiretest))
-    liste = []
-    for element in range(0,len(listedesterritoires)):
-        liste.append([listedesterritoires[element][0], listedesterritoires[element][1], lignes[element]])
-    totalparterritoire = []
-    for element in range(0,len(liste)):
-        totalparterritoire.append([liste[element][0], exportationUSD[liste[element][1]:liste[element][2]].sum(), importationUSD[liste[element][1]:liste[element][2]].sum()])
-    return totalparterritoire
+#https://docs.scipy.org/doc/scipy/reference/stats.html
 
-def nettoyage(colonne):
-    colonne2 = []
-    for element in colonne:
-        if element == 'Sans objet' or element =='-':
-            colonne2.append(float(0))
-        else:
-            colonne2.append(float(element))
-    return colonne2
+dist_names = ['norm', 'beta', 'gamma', 'pareto', 't', 'lognorm', 'invgamma', 'invgauss',  'loggamma', 'alpha', 'chi', 'chi2', 'bradford', 'burr', 'burr12', 'cauchy', 'dweibull', 'erlang', 'expon', 'exponnorm', 'exponweib', 'exponpow', 'f', 'genpareto', 'gausshyper', 'gibrat', 'gompertz', 'gumbel_r', 'pareto', 'pearson3', 'powerlaw', 'triang', 'weibull_min', 'weibull_max', 'bernoulli', 'betabinom', 'betanbinom', 'binom', 'geom', 'hypergeom', 'logser', 'nbinom', 'poisson', 'poisson_binom', 'randint', 'zipf', 'zipfian']
 
-def getliste(territoiretest):
-    listedesterritoires = [[territoiretest[0], 0]]
-    pos = 0
-    for element in range(0,len(territoiretest)):
-        if territoiretest[element] != listedesterritoires[pos][0]:
-            listedesterritoires.append([territoiretest[element], element])
-            pos += 1
-    lignes = []
-    for element in range(1,len(listedesterritoires)):
-        lignes.append(listedesterritoires[element][1] - 1)
-    lignes.append(len(territoiretest))
-    liste = []
-    for element in range(0,len(listedesterritoires)):
-        liste.append([listedesterritoires[element][0], listedesterritoires[element][1], lignes[element]])
-    return liste
+print(dist_names)
 
-# Question 4
-print("Question 4")
-# Source des données : https://www.cepii.fr/CEPII/en/bdd_modele/bdd_modele_item.asp?id=37
-with open("./data/Produits-alimentaires-2024.csv", "r", encoding="utf-8") as fichier:
-    contenu = pd.read_csv(fichier)
+# Question 1
+print("Question 1")
+import os
+os.makedirs('img',exist_ok=True)
+def plot_discret(x,y,titre,nom_fichier):
+    """Trace un diagramme en bâtons pour une loi discrète et l'enregistre dans img/."""
+    plt.figure(figsize=(6,4))
+    plt.stem(x,y,basefmt=" ")
+    plt.title(titre)
+    plt.xlabel("k (valeurs possibles)")
+    plt.ylabel("Probabilité P (X=k)")
+    plt.savefig(f"img/C:\KimJoannes-Forriez-2026-2027-Analyse-de-donnees\Seance-03\src.png",dpi=300)
+    plt.close()
 
-# Question 5
-print("Question 5")
+def plot_continu(x,y,titre, nom_fichier):
+    """Trace une courbe de densité pour une loi continue et l'enregistrer dans img/."""
+    plt.figure(figsize=(6,4))
+    plt.plot(x,y,lw=2,color='royalblue')
+    plt.title(titre)
+    plt.xlabel("x")
+    plt.ylabel("Densité de probabilité f(x)")
+    plt.savefig(f"img/C:\KimJoannes-Forriez-2026-2027-Analyse-de-donnees\Seance-03\src",dpi=300)
+    plt.close()
+    
+#1 variables discrètes
+#A.Loi de Dirac (fonction personnalisée: probabilité de 1 en un point unique, 0 ailleurs)
+x_dirac=np.arange(0, 7)
+y_dirac=np.where(x_dirac == 3, 1.0, 0.0)
+plot_discret(x_dirac, y_dirac, "Loi de Dirax (a=3)","loi_dirac")
 
-# Question 6
-print("Question 6")
+#B.Loi uniforme discète (via scipy.stats.randint)
+low,high = 1,7
+x_uni_d=np.arange(low,high)
+y_uni_d=stats.randint.pmf(x_uni_d,low,high)
+plot_discret(x_uni_d,y_uni_d,"Loi uniforme discètre (1 à 6)","loi_uniforme_discrete")
 
-# Question 7
-print("Question 7")
+#C.Loi binomiale(via scipy.stats.binom)
+n_binom,p_binom=10,0.5
+x_binom=np.arange(0, n_binom+1)
+y_binom=stats.binom.pmf(x_binom,n_binom,p_binom)
+plot_discret(x_binom,y_binom,"Loi binomiale (n=10, p=0.5)", "loi_binomiale")
 
-# Question 8
-print("Question 8")
+#D.Loi de Poisson (discrète) (via scpipy.stats.poisson)
+mu_poisson=3.0
+x_poisson=np.arange(0,13)
+y_poisson=stats.poisson.pmf(x_poisson,mu_poisson)
+plot_discret(x_poisson,y_poisson,"Loi de Poisson(mu=3)","loi_poisson")
 
-# Contenu des colonnes
-# "year" : année
-# "origin_id" : territoire de référence
-# "dest_id" : territoire partenaire
-# "Dist_VO (km)" : distance intercentroïde entre les deux territoires
-# "hs92_Section_id" : code Section du produit
-# "hs92_HS02_id" : code 2-digit du produit
-# "hs92_HS04_id" : code 4-digit du produit
-# "hs92_HS06_id" : code 6-digit du produit
-# "export_val" : valeur des exportations du territoire de référence vers le territoire partenaire en dollars courants
-# "import_val" : valeur des importations du territoire partenaire vers le territoire de référence en dollars courants
-# "export_ton" : valeur des exportations du territoire de référence vers le territoire partenaire en tonnes
-# "import_ton" : valeur des importations du territoire partenaire vers le territoire de référence en tonnes
+#E.Loi de Zipf-Mandelbrot (fonction personnalisée)
+def zipf_mandelbrot_pmf(k,s,q,n_max):
+    k=np.asarray(k,dtype=float)
+    poids=1.0/((k+q)**s)
+    constante_norm=np.sum(1.0/((np.arange(1, n_max+1,dtype=float)+q)**s))
+    return poids/constante_norm
+x_zm=np.arange(1,21)
+y_zm=zipf_mandelbrot_pmf(x_zm,s=1.5,q=2.0,n_max=50)
+plot_discret(x_zm,y_zm,"Loi de Zipf-Mandelbrot(s=1.5,q=2.0)","loi_zipf_manderlbrot")
 
-# Question 9
-print("Question 9")
+# 2. VARIABLES CONTINUES
 
-# Question 10
-print("Question 10")
+# Loi normale N (mu=0,sigma=1)
+x_norm = np.linspace(-4, 4, 300)
+y_norm = stats.norm.pdf(x_norm, loc=0, scale=1)
+plot_continu(x_norm, y_norm, "Loi normale (mu=0, sigma=1)", "loi_normale")
 
-# Question 11
-print("Question 11")
-# Appliquer la fonction listedesterritoires(...) sur vos colonnes ici
+# Loi log-normale (s=0.5, scale=1)
+x_lognorm = np.linspace(0.01, 4, 300)
+y_lognorm = stats.lognorm.pdf(x_lognorm, s=0.5,scale=1)
+plot_continu(x_lognorm, y_lognorm, "Loi log-normale(s=0.5)", "loi_log_normale")
 
-# Questions 12 et 14
-print("Questions 12 et 14")
-# Application la fonction nettoyage(...) sur vos colonnes ici
+#Loi uniforme continue sur [0,1]->loc=0, scale=1(borne sup = loc+scale)
+x_uni_c = np.linspace(-0.5, 1.5, 300)
+y_uni_c = stats.uniform.pdf(x_uni_c, loc=0, scale=1)
+plot_continu(x_uni_c, y_uni_c, "Loi uniforme continue[0,1]", "loi_uniforme_continue")
 
-# Appliquer la fonction :
-# liste = getliste(...)
+#Loi du Chi-deux (df=4 degrés de liberté)
+x_chi2 = np.linspace(0, 16, 300)
+y_chi2 = stats.chi2.pdf(x_chi2, df=4)
+plot_continu(x_chi2, y_chi2, "Loi du Chi-deux (df=4)", "loi_chi2")
 
-# Mettre le code nouveau DataFrame ici et appeler la liste donnees2
+#Loi de Pareto(b=2.5, scale=1)
+x_pareto = np.linspace(1, 6, 300)
+y_pareto = stats.pareto.pdf(x_pareto, b=2.5,scale=1)
+plot_continu(x_pareto, y_pareto, "Loi de Pareto(b=2.5,x_m=1)", "loi_pareto")
 
-# Compléter la boucle à partir des différents éléments précédents. Le nom des listes est celle proposée dans les commentaires.
-# parametres = []
-# quartiles = []
-# deciles = []
-# for element in range(0,len(donnees2.columns)):
-#     parametres2 = []
-#     distanceinterquartile = []
-#     distanceinterdecile = []
-#     for element2 in range(0,len(liste)):
-#         codeiso = liste[element2][0]
-#         data2 = donnees2.iloc[liste[element2][1]:liste[element2][2],element]
+print("Terminé ! Toutes les images ont été enregistrées dans le dossier 'img'.")
 
-#         moyenne = 
-#         mediane = 
-#         mode = 
-#         ecarttype = 
-#         ecartabsolumoyen = 
-#         etendue = 
-#         parametres2.append([codeiso, moyenne, mediane, mode, ecarttype, ecartabsolumoyen, etendue])
+# Question 2
+print("Question 2")
+import numpy as np
+import scipy.stats as stats
 
-#         quartile = 
-#         distanceinterquartile.append([codeiso, (quartile[0.75] - quartile[0.25]).round(decimals=2)])
-#         decile = 
-#         distanceinterdecile.append([codeiso, (decile[0.9] - decile[0.1]).round(decimals=2)])
-#     parametres.append(parametres2)
-#     quartiles.append(distanceinterquartile)
-#     deciles.append(distanceinterdecile)
 
-# Question 13
-print("Question 13")
+# --- LOIS DISCRÈTES ---
 
-# Question 14
-# print("Question 14")
+def stats_dirac(a=3.0):
+    """Moyenne et écart type d'une loi de Dirac centrée en a."""
+    moyenne = float(a)
+    ecart_type = 0.0
+    return moyenne, ecart_type
 
-# Question 15
-print("Question 15")
 
-# Question 16
-print("Question 16")
-# Source des données : BDCOM, https://www.apur.org/fr/open-data-cartes/open-data/base-donnees-commerces-parisiens
-with open("./data/restaurants-paris-2023.csv", "r", encoding="utf-8") as fichier:
-    contenu2 = pd.read_csv(fichier)
+def stats_uniforme_discrete(low=1, high=7):
+    """Moyenne et écart type d'une loi uniforme discrète sur {low, ..., high-1}."""
+    moyenne, variance = stats.randint.stats(low, high, moments="mv")
+    return float(moyenne), float(np.sqrt(variance))
 
-# Question bonus
-print("Question bonus")
+
+def stats_binomiale(n=10, p=0.5):
+    """Moyenne et écart type d'une loi binomiale Bin(n, p)."""
+    moyenne, variance = stats.binom.stats(n, p, moments="mv")
+    return float(moyenne), float(np.sqrt(variance))
+
+
+def stats_poisson(mu=3.0):
+    """Moyenne et écart type d'une loi de Poisson P(mu)."""
+    moyenne, variance = stats.poisson.stats(mu, moments="mv")
+    return float(moyenne), float(np.sqrt(variance))
+
+
+def stats_zipf_mandelbrot(s=1.5, q=2.0, n_max=50):
+    """Moyenne et écart type d'une loi de Zipf-Mandelbrot tronquée sur 1..n_max."""
+    k = np.arange(1, n_max + 1, dtype=float)
+    poids = 1.0 / ((k + q) ** s)
+    pmf = poids / np.sum(poids)
+    moyenne = float(np.sum(k * pmf))
+    variance = float(np.sum(((k - moyenne) ** 2) * pmf))
+    return moyenne, float(np.sqrt(variance))
+
+
+# --- LOIS CONTINUES ---
+
+def stats_normale(loc=0.0, scale=1.0):
+    """Moyenne et écart type d'une loi normale N(loc, scale^2)."""
+    moyenne, variance = stats.norm.stats(loc=loc, scale=scale, moments="mv")
+    return float(moyenne), float(np.sqrt(variance))
+
+
+def stats_log_normale(s=0.5, scale=1.0):
+    """Moyenne et écart type d'une loi log-normale."""
+    moyenne, variance = stats.lognorm.stats(s, scale=scale, moments="mv")
+    return float(moyenne), float(np.sqrt(variance))
+
+
+def stats_uniforme_continue(loc=0.0, scale=1.0):
+    """Moyenne et écart type d'une loi uniforme continue sur [loc, loc + scale]."""
+    moyenne, variance = stats.uniform.stats(loc=loc, scale=scale, moments="mv")
+    return float(moyenne), float(np.sqrt(variance))
+
+
+def stats_chi2(df=4):
+    """Moyenne et écart type d'une loi du chi-deux à df degrés de liberté."""
+    moyenne, variance = stats.chi2.stats(df, moments="mv")
+    return float(moyenne), float(np.sqrt(variance))
+
+
+def stats_pareto(b=2.5, scale=1.0):
+    """Moyenne et écart type d'une loi de Pareto (b > 2 pour variance finie)."""
+    moyenne, variance = stats.pareto.stats(b, scale=scale, moments="mv")
+    return float(moyenne), float(np.sqrt(variance))
+
+print("Terminé ! Toutes les images ont été enregistrées dans le dossier 'img'.")
