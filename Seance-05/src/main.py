@@ -1,147 +1,206 @@
 #coding:utf8
 
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-from scipy import stats
+import scipy
+import scipy.stats
+import math
 
-def listedesterritoires(territoiretest, exportationUSD, importationUSD):
-    listedesterritoires = [[territoiretest[0], 0]]
-    pos = 0
-    for element in range(0,len(territoiretest)):
-        if territoiretest[element] != listedesterritoires[pos][0]:
-            listedesterritoires.append([territoiretest[element], element])
-            pos += 1
-    lignes = []
-    for element in range(1,len(listedesterritoires)):
-        lignes.append(listedesterritoires[element][1] - 1)
-    lignes.append(len(territoiretest))
-    liste = []
-    for element in range(0,len(listedesterritoires)):
-        liste.append([listedesterritoires[element][0], listedesterritoires[element][1], lignes[element]])
-    totalparterritoire = []
-    for element in range(0,len(liste)):
-        totalparterritoire.append([liste[element][0], exportationUSD[liste[element][1]:liste[element][2]].sum(), importationUSD[liste[element][1]:liste[element][2]].sum()])
-    return totalparterritoire
+def ouvrirUnFichier(nom):
+    with open(nom, "r", encoding='utf-8') as fichier:
+        contenu = pd.read_csv(fichier)
+    return contenu
 
-def nettoyage(colonne):
-    colonne2 = []
-    for element in colonne:
-        if element == 'Sans objet' or element =='-':
-            colonne2.append(float(0))
-        else:
-            colonne2.append(float(element))
-    return colonne2
+def conversionLog(liste):
+    log = []
+    for element in liste:
+        log.append(math.log(element))
+    return log
 
-def getliste(territoiretest):
-    listedesterritoires = [[territoiretest[0], 0]]
-    pos = 0
-    for element in range(0,len(territoiretest)):
-        if territoiretest[element] != listedesterritoires[pos][0]:
-            listedesterritoires.append([territoiretest[element], element])
-            pos += 1
-    lignes = []
-    for element in range(1,len(listedesterritoires)):
-        lignes.append(listedesterritoires[element][1] - 1)
-    lignes.append(len(territoiretest))
-    liste = []
-    for element in range(0,len(listedesterritoires)):
-        liste.append([listedesterritoires[element][0], listedesterritoires[element][1], lignes[element]])
+def ordreDecroissant(liste):
+    liste.sort(reverse = True)
     return liste
+
+def ordrePopulation(pop, etat):
+    ordrepop = []
+    for element in range(0, len(pop)):
+        if np.isnan(pop[element]) == False:
+            ordrepop.append([float(pop[element]), etat[element]])
+    ordrepop = ordreDecroissant(ordrepop)
+    for element in range(0, len(ordrepop)):
+        ordrepop[element] = [element + 1, ordrepop[element][1]]
+    return ordrepop
+
+def classementPays(ordre1, ordre2):
+    classement = []
+    if len(ordre1) <= len(ordre2):
+        for element1 in range(0, len(ordre2) - 1):
+            for element2 in range(0, len(ordre1) - 1):
+                if ordre2[element1][1] == ordre1[element2][1]:
+                    classement.append([ordre1[element2][0], ordre2[element1][0], ordre1[element2][1]])
+    else:
+        for element1 in range(0, len(ordre1) - 1):
+            for element2 in range(0, len(ordre2) - 1):
+                if ordre2[element2][1] == ordre1[element1][1]:
+                    classement.append([ordre1[element1][0], ordre2[element2][0], ordre1[element][1]])
+    return classement
+
+# Question 2
+print("Question 2")
+df_restaurants=ouvrirUnFichier("data/classement-restaurants-paris-2023-par-enseignes.csv")
+
+# Question 3
+print("Question 3")
+nb_etablissements=list(df_restaurants["Nombre d'établissement"])
 
 # Question 4
 print("Question 4")
-# Source des données : https://www.cepii.fr/CEPII/en/bdd_modele/bdd_modele_item.asp?id=37
-with open("./data/Produits-alimentaires-2024.csv", "r", encoding="utf-8") as fichier:
-    contenu = pd.read_csv(fichier)
+nb_etablissements_tries = ordreDecroissant(nb_etablissements)
+rangs_restaurants=list(range(1, len(nb_etablissements_tries)+1))
 
 # Question 5
 print("Question 5")
+plt.figure(figsize=(6,4))
+plt.plot(rangs_restaurants, nb_etablissements_tries)
+plt.title("Loi rang-taille des enseignes (échelle linéaire)")
+plt.xlabel("Rang")
+plt.ylabel("Nombre d'établissements")
+plt.tight_layout()
+plt.savefig("rang_taille_lineaire.png")
+plt.close()
 
 # Question 6
 print("Question 6")
+log_rangs = conversionLog(rangs_restaurants)
+log_nb_etablissements = conversionLog(nb_etablissements_tries)
+
+plt.figure(figsize=(6, 4))
+plt.plot(log_rangs, log_nb_etablissements)
+plt.title("Loi rang-taille des enseignes (échelle logarithmique)")
+plt.xlabel("log(Rang)")
+plt.ylabel("log(Nombre d'établissements)")
+plt.tight_layout()
+plt.savefig("rang_taille_log.png")
+plt.close()
 
 # Question 7
 print("Question 7")
-
-# Question 8
-print("Question 8")
-
-# Contenu des colonnes
-# "year" : année
-# "origin_id" : territoire de référence
-# "dest_id" : territoire partenaire
-# "Dist_VO (km)" : distance intercentroïde entre les deux territoires
-# "hs92_Section_id" : code Section du produit
-# "hs92_HS02_id" : code 2-digit du produit
-# "hs92_HS04_id" : code 4-digit du produit
-# "hs92_HS06_id" : code 6-digit du produit
-# "export_val" : valeur des exportations du territoire de référence vers le territoire partenaire en dollars courants
-# "import_val" : valeur des importations du territoire partenaire vers le territoire de référence en dollars courants
-# "export_ton" : valeur des exportations du territoire de référence vers le territoire partenaire en tonnes
-# "import_ton" : valeur des importations du territoire partenaire vers le territoire de référence en tonnes
+# Mettre ici votre réponse argumentée
+#Oui, il est possible de faire des tests sur les rangs : par exemple des tests de corrélation
+#de rangs (Spearman ou Kendall) pour comparer deux classements, ou des tests d'adéquation /
+#d'ajustement (ex. régression en log-dog ou tests de loi de puissance) pour évaluer la relation
+#entre le rang et la taille
 
 # Question 9
 print("Question 9")
+df_monde = ouvrirUnFichier("data/Le-Monde-HS-Etats-du-monde-2007-2026.csv")
 
 # Question 10
 print("Question 10")
+print("Question 10")
+etats = list(df_monde["État"])
+pop_2007 = list(df_monde["Pop 2007"])
+pop_2026 = list(df_monde["Pop 2026"])
+densite_2007 = list(df_monde["Densité 2007"])
+densite_2026 = list(df_monde["Densité 2026"])
 
 # Question 11
 print("Question 11")
-# Appliquer la fonction listedesterritoires(...) sur vos colonnes ici
+ordre_pop_2007 = ordrePopulation(pop_2007, etats)
+ordre_pop_2026 = ordrePopulation(pop_2026, etats)
+ordre_densite_2007 = ordrePopulation(densite_2007, etats)
+ordre_densite_2026 = ordrePopulation(densite_2026, etats)
 
-# Questions 12 et 14
-print("Questions 12 et 14")
-# Application la fonction nettoyage(...) sur vos colonnes ici
+# Question 12
+print("Question 12")
+comparaison_2007 = classementPays(ordre_pop_2007, ordre_densite_2007)
+comparaison_2007.sort()
 
-# Appliquer la fonction :
-# liste = getliste(...)
-
-# Mettre le code nouveau DataFrame ici et appeler la liste donnees2
-
-# Compléter la boucle à partir des différents éléments précédents. Le nom des listes est celle proposée dans les commentaires.
-# parametres = []
-# quartiles = []
-# deciles = []
-# for element in range(0,len(donnees2.columns)):
-#     parametres2 = []
-#     distanceinterquartile = []
-#     distanceinterdecile = []
-#     for element2 in range(0,len(liste)):
-#         codeiso = liste[element2][0]
-#         data2 = donnees2.iloc[liste[element2][1]:liste[element2][2],element]
-
-#         moyenne = 
-#         mediane = 
-#         mode = 
-#         ecarttype = 
-#         ecartabsolumoyen = 
-#         etendue = 
-#         parametres2.append([codeiso, moyenne, mediane, mode, ecarttype, ecartabsolumoyen, etendue])
-
-#         quartile = 
-#         distanceinterquartile.append([codeiso, (quartile[0.75] - quartile[0.25]).round(decimals=2)])
-#         decile = 
-#         distanceinterdecile.append([codeiso, (decile[0.9] - decile[0.1]).round(decimals=2)])
-#     parametres.append(parametres2)
-#     quartiles.append(distanceinterquartile)
-#     deciles.append(distanceinterdecile)
+comparaison_2026 = classementPays(ordre_pop_2026, ordre_densite_2026)
+comparaison_2026.sort()
 
 # Question 13
 print("Question 13")
+rangs_pop_2007 = []
+rangs_densite_2007 = []
+for ligne in comparaison_2007:
+    rangs_pop_2007.append(ligne[0])
+    rangs_densite_2007.append(ligne[1])
+
+rangs_pop_2026 = []
+rangs_densite_2026 = []
+for ligne in comparaison_2026:
+    rangs_pop_2026.append(ligne[0])
+    rangs_densite_2026.append(ligne[1])
 
 # Question 14
-# print("Question 14")
+print("Question 14")
+spearman_2007 = scipy.stats.spearmanr(rangs_pop_2007, rangs_densite_2007)
+kendall_2007 = scipy.stats.kendalltau(rangs_pop_2007, rangs_densite_2007)
+print("2007 - Spearman :", spearman_2007, "| Kendall :", kendall_2007)
+print(f"Q14 (2007) | Spearman r = {spearman_2007[0]:.4f} (p = {spearman_2007[1]:.4e}) | Kendall tau = {kendall_2007[0]:.4f} (p = {kendall_2007[1]:.4e})")
 
-# Question 15
-print("Question 15")
+spearman_2026 = scipy.stats.spearmanr(rangs_pop_2026, rangs_densite_2026)
+kendall_2026 = scipy.stats.kendalltau(rangs_pop_2026, rangs_densite_2026)
+print("2026 - Spearman :", spearman_2026, "| Kendall :", kendall_2026)
+print(f"Q14 (2026) | Spearman r = {spearman_2026[0]:.4f} (p = {spearman_2026[1]:.4e}) | Kendall tau = {kendall_2026[0]:.4f} (p = {kendall_2026[1]:.4e})")
 
-# Question 16
-print("Question 16")
-# Source des données : BDCOM, https://www.apur.org/fr/open-data-cartes/open-data/base-donnees-commerces-parisiens
-with open("./data/restaurants-paris-2023.csv", "r", encoding="utf-8") as fichier:
-    contenu2 = pd.read_csv(fichier)
+spearman_2026 = scipy.stats.spearmanr(rangs_pop_2026, rangs_densite_2026)
+kendall_2026 = scipy.stats.kendalltau(rangs_pop_2026, rangs_densite_2026)
+print("2026 - Spearman :", spearman_2026, "| Kendall :", kendall_2026)
 
-# Question bonus
-print("Question bonus")
+print("\n=== RÉCAPITULATIF SÉANCE 5 ===")
+print(f"Q2-Q4 | Nombre d'enseignes (2023) : {len(nb_etablissements_tries)} | Top 5 : {nb_etablissements_tries[:5]}")
+print("Q5-Q6 | Graphiques enregistrés : rang_taille_lineaire.png et rang_taille_log.png")
+print("Q7    | Tests sur les rangs : possible (corrélations de rangs Spearman/Kendall ou ajustement log-log / loi de puissance)")
+print(f"Q9-Q11| États traités (2007 / 2026) : {len(ordre_pop_2007)} / {len(ordre_pop_2026)} | Top 3 pop 2026 : {ordre_pop_2026[:3]}")
+print(f"Q12-Q13| Lignes comparées 2007 / 2026 : {len(comparaison_2007)} / {len(comparaison_2026)}")
+print(f"Q14 (2007) | Spearman r = {spearman_2007[0]:.4f} (p = {spearman_2007[1]:.4e}) | Kendall tau = {kendall_2007[0]:.4f} (p = {kendall_2007[1]:.4e})")
+print(f"Q14 (2026) | Spearman r = {spearman_2026[0]:.4f} (p = {spearman_2026[1]:.4e}) | Kendall tau = {kendall_2026[0]:.4f} (p = {kendall_2026[1]:.4e})")
+
+#Bonus : Créer des fonctions locales permettant de calcuer rapidement une analyse de rangs
+    #Pour les restaurants, données du fichier restaurants-paris-2017 : comparaison addresses postales entre la liste des restaurants en 2017 et celle en 2023
+# 1-FONCTIONS LOCALES BONUS : ANALYSE DE RANGS
+def calculerRangs(valeurs):
+    """Retourne les rangs (1 = plus grande valeur) associés à une liste de valeurs."""
+    tries = sorted(((val, idx) for idx, val in enumerate(valeurs)), key=lambda x: x[0], reverse=True)
+    rangs = [0] * len(valeurs)
+    for rang, (_, idx_orig) in enumerate(tries, start=1):
+        rangs[idx_orig] = rang
+    return rangs
+
+
+def comparerRangs(valeurs_a, valeurs_b):
+    """Calcule rangs, corrélation de Spearman et concordance de Kendall entre deux séries."""
+    rangs_a = calculerRangs(valeurs_a)
+    rangs_b = calculerRangs(valeurs_b)
+    spearman = scipy.stats.spearmanr(rangs_a, rangs_b)
+    kendall = scipy.stats.kendalltau(rangs_a, rangs_b)
+    return {
+        "rangs_a": rangs_a,
+        "rangs_b": rangs_b,
+        "spearman_r": float(spearman[0]),
+        "spearman_p": float(spearman[1]),
+        "kendall_tau": float(kendall[0]),
+        "kendall_p": float(kendall[1]),
+    }
+
+#2-Comparaison 2017 vs 2023
+print("\n=== BONUS : 2017 vs 2023 ===")
+df_2017 = ouvrirUnFichier("data/classement-restaurants-paris-2017-par-enseignes.csv")
+df_communes = pd.merge(
+    df_2017,
+    df_restaurants,
+    on="Enseigne",
+    suffixes=("_2017", "_2023")
+)
+res_bonus = comparerRangs(
+    list(df_communes["Nombre d'établissement_2017"]),
+    list(df_communes["Nombre d'établissement_2023"])
+)
+print(
+    f"Enseignes communes : {len(df_communes)} | "
+    f"Spearman r = {res_bonus['spearman_r']:.4f} (p = {res_bonus['spearman_p']:.4e}) | "
+    f"Kendall tau = {res_bonus['kendall_tau']:.4f} (p = {res_bonus['kendall_p']:.4e})"
+)
