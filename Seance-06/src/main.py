@@ -1,147 +1,180 @@
 #coding:utf8
 
+from pathlib import Path
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-from scipy import stats
+import scipy
+import scipy.stats
 
-def listedesterritoires(territoiretest, exportationUSD, importationUSD):
-    listedesterritoires = [[territoiretest[0], 0]]
-    pos = 0
-    for element in range(0,len(territoiretest)):
-        if territoiretest[element] != listedesterritoires[pos][0]:
-            listedesterritoires.append([territoiretest[element], element])
-            pos += 1
-    lignes = []
-    for element in range(1,len(listedesterritoires)):
-        lignes.append(listedesterritoires[element][1] - 1)
-    lignes.append(len(territoiretest))
-    liste = []
-    for element in range(0,len(listedesterritoires)):
-        liste.append([listedesterritoires[element][0], listedesterritoires[element][1], lignes[element]])
-    totalparterritoire = []
-    for element in range(0,len(liste)):
-        totalparterritoire.append([liste[element][0], exportationUSD[liste[element][1]:liste[element][2]].sum(), importationUSD[liste[element][1]:liste[element][2]].sum()])
-    return totalparterritoire
+def ouvrirUnFichier(nom):
+    with open(nom, "r", encoding = "utf-8") as fichier:
+        contenu = pd.read_csv(fichier)
+    return contenu
 
-def nettoyage(colonne):
-    colonne2 = []
-    for element in colonne:
-        if element == 'Sans objet' or element =='-':
-            colonne2.append(float(0))
-        else:
-            colonne2.append(float(element))
-    return colonne2
+def analyser_paire(df, col_x, col_y):
+    sub = df[[col_x, col_y]].copy()
+    sub[col_x] = pd.to_numeric(sub[col_x], errors="coerce")
+    sub[col_y] = pd.to_numeric(sub[col_y], errors="coerce")
+    sub = sub.dropna()
+    x = sub[col_x]
+    y = sub[col_y]
+    reg_xy = scipy.stats.linregress(x, y)
+    reg_yx = scipy.stats.linregress(y, x)
+    corr = x.corr(y)
+    return x, y, reg_xy, reg_yx, corr
 
-def getliste(territoiretest):
-    listedesterritoires = [[territoiretest[0], 0]]
-    pos = 0
-    for element in range(0,len(territoiretest)):
-        if territoiretest[element] != listedesterritoires[pos][0]:
-            listedesterritoires.append([territoiretest[element], element])
-            pos += 1
-    lignes = []
-    for element in range(1,len(listedesterritoires)):
-        lignes.append(listedesterritoires[element][1] - 1)
-    lignes.append(len(territoiretest))
-    liste = []
-    for element in range(0,len(listedesterritoires)):
-        liste.append([listedesterritoires[element][0], listedesterritoires[element][1], lignes[element]])
-    return liste
+def tracer_regression(x, y, reg, titre, xlabel, ylabel, fichier_sortie):
+    plt.figure(figsize=(6, 4.5))
+    plt.scatter(x, y, alpha=0.65, s=22, label="Territoires")
+    x_vals = np.linspace(x.min(), x.max(), 200)
+    y_vals = reg.intercept + reg.slope * x_vals
+    plt.plot(
+        x_vals,
+        y_vals,
+        color="red",
+        linewidth=2,
+        label=f"y = {reg.slope:.4f}x + {reg.intercept:.2e} (r={reg.rvalue:.3f})",
+    )
+    plt.title(titre)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.legend(fontsize=8)
+    plt.tight_layout()
+    plt.savefig(fichier_sortie, dpi=130)
+    plt.close()
+    
+# Question 1
+print("Question 1")
+
+# "Année" : Année, ici 2024
+# "Code-ISO" : code ISO du territoire
+# "Total-export-alimentaire-USD" : total des exportations concernant les produits alimentaires
+# "Total-import-alimentaire-USD" : total des importations concernant les produits alimentaires
+# "Total-export-autres-USD" : total des exportations concernant les produits non alimentaires
+# "Total-import-autres-USD" : total des importations concernant les produits non alimentaires
+# "Total-export-USD" : total des exportations
+# "Total-import-USD" : total des importations
+
+chemin_2024=Path("data/Produits-alimentaires-vs-autres-2024.csv")
+if not chemin_2024.exists() and Path("data/Produits-alimentaires-vs-autres.csv").exists():
+    chemin_2024 = Path("data/Produits-alimentaires-vs-autres.csv")
+df = ouvrirUnFichier(chemin_2024)
+annee = df["Année"]
+code_iso = df["Code-ISO"]
+export_alim = df["Total-export-alimentaire-USD"]
+import_alim = df["Total-import-alimentaire-USD"]
+export_autres = df["Total-export-autres-USD"]
+import_autres = df["Total-import-autres-USD"]
+export_total = df["Total-export-USD"]
+import_total = df["Total-import-USD"]
+
+# Question 2
+print("Question 2")
+# Calcul de la régression linéaire pour la méthode des moindres carrées 1
+# Calcul de la droite de régression 1
+# Calcul de la régression linéaire pour la méthode des moindres carrées 2
+# Calcul de la droite de régression 2
+# Calcul de la régression linéaire pour la méthode des moindres carrées 3
+# Calcul de la droite de régression 3
+
+print("Question 2")
+x1, y1, reg1_xy, reg1_yx, corr1 = analyser_paire(
+    df, "Total-import-alimentaire-USD", "Total-export-alimentaire-USD"
+)
+x2, y2, reg2_xy, reg2_yx, corr2 = analyser_paire(
+    df, "Total-import-autres-USD", "Total-export-autres-USD"
+)
+x3, y3, reg3_xy, reg3_yx, corr3 = analyser_paire(
+    df, "Total-import-USD", "Total-export-USD"
+)
+
+for nom, r_xy, r_yx in [
+    ("Alimentaire", reg1_xy, reg1_yx),
+    ("Autres", reg2_xy, reg2_yx),
+    ("Total", reg3_xy, reg3_yx),
+]:
+    print(
+        f"[{nom}] x->y: pente={r_xy.slope:.4f}, ord={r_xy.intercept:.2f} | "
+        f"y->x (inversé): pente={r_yx.slope:.4f}, ord={r_yx.intercept:.2f}"
+    )
+
+# Question 3
+print("Question 3")
+# Calcul du coefficient de corrélation 1
+# Calcul du coefficient de corrélation 2
+# Calcul du coefficient de corrélation 3
+print(f"Corrélation Alimentaire : {corr1:.4f}")
+print(f"Corrélation Autres      : {corr2:.4f}")
+print(f"Corrélation Total       : {corr3:.4f}")
 
 # Question 4
 print("Question 4")
-# Source des données : https://www.cepii.fr/CEPII/en/bdd_modele/bdd_modele_item.asp?id=37
-with open("./data/Produits-alimentaires-2024.csv", "r", encoding="utf-8") as fichier:
-    contenu = pd.read_csv(fichier)
+# Calcul du graphique 1
+# Calcul du graphique 2
+# Calcul du graphique 3
+print("Question 4")
+dossier_out = Path("outputs")
+dossier_out.mkdir(parents=True, exist_ok=True)
 
-# Question 5
-print("Question 5")
+tracer_regression(
+    x1, y1, reg1_xy,
+    "Produits alimentaires (2024)",
+    "Total-import-alimentaire-USD", "Total-export-alimentaire-USD",
+    dossier_out / "regression_alimentaire_2024.png",
+)
+tracer_regression(
+    x2, y2, reg2_xy,
+    "Produits non alimentaires (2024)",
+    "Total-import-autres-USD", "Total-export-autres-USD",
+    dossier_out / "regression_autres_2024.png",
+)
+tracer_regression(
+    x3, y3, reg3_xy,
+    "Commerce total (2024)",
+    "Total-import-USD", "Total-export-USD",
+    dossier_out / "regression_total_2024.png",
+)
 
-# Question 6
-print("Question 6")
+#Bonus : généralisation de 1995 à 2024
+print("\n===BONUS:1995 à 2024===")
+resultats_annees=[]
+for an in range(1995,2025):
+    fichier_an=Path(f"data/Produits-alimentaires-vs-autres-{an}.csv")
+    if fichier_an.exists():
+        df_an = ouvrirUnFichier(fichier_an)
+        _, _, r_a, _, c_a = analyser_paire(
+            df_an, "Total-import-alimentaire-USD", "Total-export-alimentaire-USD"
+        )
+        _, _, r_o, _, c_o = analyser_paire(
+            df_an, "Total-import-autres-USD", "Total-export-autres-USD"
+        )
+        _, _, r_t, _, c_t = analyser_paire(
+            df_an, "Total-import-USD", "Total-export-USD"
+        )
+        resultats_annees.append({
+            "Annee": an,
+            "pente_alim": r_a.slope,
+            "corr_alim": c_a,
+            "r2_alim": r_a.rvalue ** 2,
+            "pente_autres": r_o.slope,
+            "corr_autres": c_o,
+            "pente_total": r_t.slope,
+            "corr_total": c_t,
+        })
 
-# Question 7
-print("Question 7")
+df_synthese = pd.DataFrame(resultats_annees)
+df_synthese.to_csv(dossier_out / "synthese_regressions_1995_2024.csv", index=False)
 
-# Question 8
-print("Question 8")
-
-# Contenu des colonnes
-# "year" : année
-# "origin_id" : territoire de référence
-# "dest_id" : territoire partenaire
-# "Dist_VO (km)" : distance intercentroïde entre les deux territoires
-# "hs92_Section_id" : code Section du produit
-# "hs92_HS02_id" : code 2-digit du produit
-# "hs92_HS04_id" : code 4-digit du produit
-# "hs92_HS06_id" : code 6-digit du produit
-# "export_val" : valeur des exportations du territoire de référence vers le territoire partenaire en dollars courants
-# "import_val" : valeur des importations du territoire partenaire vers le territoire de référence en dollars courants
-# "export_ton" : valeur des exportations du territoire de référence vers le territoire partenaire en tonnes
-# "import_ton" : valeur des importations du territoire partenaire vers le territoire de référence en tonnes
-
-# Question 9
-print("Question 9")
-
-# Question 10
-print("Question 10")
-
-# Question 11
-print("Question 11")
-# Appliquer la fonction listedesterritoires(...) sur vos colonnes ici
-
-# Questions 12 et 14
-print("Questions 12 et 14")
-# Application la fonction nettoyage(...) sur vos colonnes ici
-
-# Appliquer la fonction :
-# liste = getliste(...)
-
-# Mettre le code nouveau DataFrame ici et appeler la liste donnees2
-
-# Compléter la boucle à partir des différents éléments précédents. Le nom des listes est celle proposée dans les commentaires.
-# parametres = []
-# quartiles = []
-# deciles = []
-# for element in range(0,len(donnees2.columns)):
-#     parametres2 = []
-#     distanceinterquartile = []
-#     distanceinterdecile = []
-#     for element2 in range(0,len(liste)):
-#         codeiso = liste[element2][0]
-#         data2 = donnees2.iloc[liste[element2][1]:liste[element2][2],element]
-
-#         moyenne = 
-#         mediane = 
-#         mode = 
-#         ecarttype = 
-#         ecartabsolumoyen = 
-#         etendue = 
-#         parametres2.append([codeiso, moyenne, mediane, mode, ecarttype, ecartabsolumoyen, etendue])
-
-#         quartile = 
-#         distanceinterquartile.append([codeiso, (quartile[0.75] - quartile[0.25]).round(decimals=2)])
-#         decile = 
-#         distanceinterdecile.append([codeiso, (decile[0.9] - decile[0.1]).round(decimals=2)])
-#     parametres.append(parametres2)
-#     quartiles.append(distanceinterquartile)
-#     deciles.append(distanceinterdecile)
-
-# Question 13
-print("Question 13")
-
-# Question 14
-# print("Question 14")
-
-# Question 15
-print("Question 15")
-
-# Question 16
-print("Question 16")
-# Source des données : BDCOM, https://www.apur.org/fr/open-data-cartes/open-data/base-donnees-commerces-parisiens
-with open("./data/restaurants-paris-2023.csv", "r", encoding="utf-8") as fichier:
-    contenu2 = pd.read_csv(fichier)
-
-# Question bonus
-print("Question bonus")
+if not df_synthese.empty:
+    plt.figure(figsize=(7, 4.2))
+    plt.plot(df_synthese["Annee"], df_synthese["pente_alim"], marker="o", markersize=4, label="Pente Alimentaire")
+    plt.plot(df_synthese["Annee"], df_synthese["corr_alim"], marker="s", markersize=4, label="Corrélation r Alimentaire")
+    plt.title("Évolution 1995–2024 : pente et corrélation (Alimentaire)")
+    plt.xlabel("Année")
+    plt.ylabel("Valeur")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(dossier_out / "evolution_alimentaire_1995_2024.png", dpi=130)
+    plt.close()
+    print(df_synthese[["Annee", "pente_alim", "corr_alim", "r2_alim"]].to_string(index=False))
